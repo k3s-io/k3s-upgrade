@@ -7,6 +7,13 @@ platform:
   arch: amd64
 
 steps:
+- name: tag
+  image: rancher/dapper:v0.4.2
+  commands:
+    - echo "${DRONE_TAG}-amd64" | sed -e 's/+/-/g' >.tags
+  volumes:
+    - name: docker
+      path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
   settings:
@@ -39,7 +46,13 @@ platform:
   arch: arm64
 
 steps:
-
+- name: tag
+  image: rancher/dapper:v0.4.2
+  commands:
+    - echo "${DRONE_TAG}-arm64" | sed -e 's/+/-/g' >.tags
+  volumes:
+    - name: docker
+      path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
   build_args:
@@ -74,7 +87,13 @@ platform:
   arch: arm
 
 steps:
-
+- name: tag
+  image: rancher/dapper:v0.4.2
+  commands:
+    - echo "${DRONE_TAG}-arm" | sed -e 's/+/-/g' >.tags
+  volumes:
+    - name: docker
+      path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
   build_args:
