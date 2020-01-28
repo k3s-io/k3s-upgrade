@@ -97,9 +97,9 @@ steps:
 - name: docker-publish
   image: plugins/docker
   build_args:
-    - ARCH=-armhf
+    - ARCH=-arm
   settings:
-    dockerfile: package/Dockerfile
+    dockerfile: Dockerfile
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
