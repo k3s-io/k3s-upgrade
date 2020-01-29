@@ -23,6 +23,12 @@ verify_system() {
         HAS_SYSTEMD=true
         return
     fi
+    # check if this is k3d
+    K3D=$(cat /host/proc/1/cmdline | grep k3s)
+    if [ $K3D == "/bin/k3s" ]; then
+      IS_K3D=true
+      return
+    fi
     fatal 'Can not find systemd or openrc to use as a process supervisor for k3s'
 }
 
@@ -57,11 +63,15 @@ setup_verify_arch() {
 }
 
 get_k3s_process_info() {
+  if [ $IS_K3D == "true" ]; then
+    K3S_BIN_PATH=/bin/k3s
+    K3S_PID=1
+    return
+  fi
   K3S_PID=$(pgrep k3s-)
   if [ -z "$K3S_PID" ]; then
     fatal "K3s is not running on this server"
   fi
-  #K3S_BIN_PATH=$(ls  -l /host/proc/${K3S_PID}/exe | awk -F '-> ' '{print $2}')
   K3S_BIN_PATH=$(cat /host/proc/${K3S_PID}/cmdline | awk '{print $1}' | head -n 1)
   if [ -z "$K3S_BIN_PATH" ]; then
     fatal "Failed to fetch the k3s binary path from process $K3S_PID"
@@ -74,7 +84,7 @@ replace_binary() {
   if [ ! -f $NEW_BINARY ]; then
     fatal "The new binary $NEW_BINARY doesn't exist"
   fi
-  FULL_BIN_PATH="host/$K3S_BIN_PATH"
+  FULL_BIN_PATH="/host$K3S_BIN_PATH"
   cp $NEW_BINARY $FULL_BIN_PATH
   info "K3s binary has been replaced successfully"
   return
