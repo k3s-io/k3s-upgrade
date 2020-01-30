@@ -1,7 +1,7 @@
 FROM alpine:3.10
 
 ARG ARCH=
-ARG VERSION="v1.17.0+k3s.1"
+ARG VERSION="v1.17.2+k3s1"
 
 ENV K3S_RELEASE https://github.com/rancher/k3s/releases/download/${VERSION}/k3s${ARCH}
 
