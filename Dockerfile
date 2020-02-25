@@ -1,15 +1,32 @@
-FROM alpine:3.10
-
+ARG ALPINE=alpine:3.11
+FROM ${ALPINE} AS verify
 ARG ARCH
-ARG DRONE_TAG
+ARG TAG
+WORKDIR /verify
+ADD https://github.com/rancher/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
+RUN set -x \
+ && apk --no-cache add \
+    curl \
+    file
+RUN if [ "${ARCH}" == "amd64" ]; then \
+      export ARTIFACT="k3s"; \
+    elif [ "${ARCH}" == "arm" ]; then \
+      export ARTIFACT="k3s-armhf"; \
+    elif [ "${ARCH}" == "arm64" ]; then \
+      export ARTIFACT="k3s-arm64"; \
+    fi \
+ && curl --output ${ARTIFACT}  --fail --location https://github.com/rancher/k3s/releases/download/${TAG}/${ARTIFACT} \
+ && grep -v k3s-airgap sha256sum-${ARCH}.txt | sha256sum -c \
+ && mv -vf ${ARTIFACT} /opt/k3s \
+ && chmod +x /opt/k3s \
+ && file /opt/k3s
 
-ENV K3S_RELEASE https://github.com/rancher/k3s/releases/download/${DRONE_TAG}/k3s${ARCH}
-ENV K3S_RELEASE_CHECKSUM https://github.com/rancher/k3s/releases/download/${DRONE_TAG}/sha256sum${ARCH}.txt
-
-RUN apk add -U jq curl
-RUN curl -L -o /opt/k3s ${K3S_RELEASE}
-RUN chmod +x /opt/k3s
+FROM ${ALPINE}
+ARG ARCH
+ARG TAG
+RUN apk --no-cache add \
+    jq
+COPY --from=verify /opt/k3s /opt/k3s
 COPY scripts/upgrade.sh /bin/upgrade.sh
-
 ENTRYPOINT ["/bin/upgrade.sh"]
 CMD ["upgrade"]

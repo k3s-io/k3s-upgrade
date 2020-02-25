@@ -47,23 +47,6 @@ kill_k3s_process() {
     info "Successfully Killed old k3s process $K3S_PID"
 }
 
-check_hash(){
-    sha_cmd="sha256sum"
-
-    if [ ! -x "$(command -v $sha_cmd)" ]; then
-    sha_cmd="shasum -a 256"
-    fi
-
-    if [ -x "$(command -v $sha_cmd)" ]; then
-
-    K3S_RELEASE_CHECKSUM=$(echo $K3S_RELEASE_CHECKSUM | sed "s/sha256sum.txt/sha256sum-amd64.txt/g")
-    (cd /opt && curl -sSL $K3S_RELEASE_CHECKSUM | head -1 | $sha_cmd -c >/dev/null)
-        if [ "$?" != "0" ]; then
-            fatal "Binary checksum didn't match. Exiting"
-        fi
-    fi
-}
-
 prepare() {
   KUBECTL_BIN="/opt/k3s kubectl"
   MASTER_PLAN=${1}
@@ -84,7 +67,6 @@ prepare() {
 }
 
 upgrade() {
-  check_hash
   get_k3s_process_info
   replace_binary
   kill_k3s_process
