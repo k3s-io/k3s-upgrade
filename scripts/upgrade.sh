@@ -57,7 +57,7 @@ check_hash(){
     if [ -x "$(command -v $sha_cmd)" ]; then
 
     K3S_RELEASE_CHECKSUM=$(echo $K3S_RELEASE_CHECKSUM | sed "s/sha256sum.txt/sha256sum-amd64.txt/g")
-    (cd /opt && curl -sSL K3S_RELEASE_CHECKSUM | head -1 | $sha_cmd -c >/dev/null)
+    (cd /opt && curl -sSL $K3S_RELEASE_CHECKSUM | head -1 | $sha_cmd -c >/dev/null)
         if [ "$?" != "0" ]; then
             fatal "Binary checksum didn't match. Exiting"
         fi
