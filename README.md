@@ -54,7 +54,7 @@ spec:
   nodeSelector:
     matchExpressions:
       - {key: k3s-upgrade, operator: Exists}
-  serviceAccountName: default
+  serviceAccountName: system-upgrade
   drain:
     force: true
   upgrade:
