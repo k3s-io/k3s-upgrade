@@ -16,10 +16,9 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args_from_env:
-    - DRONE_TAG
   build_args:
-    - ARCH=
+    - ARCH=amd64
+    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
     password:
@@ -59,10 +58,9 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args_from_env:
-    - DRONE_TAG
   build_args:
-    - ARCH=-arm64
+    - ARCH=arm64
+    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
     password:
@@ -102,10 +100,9 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args_from_env:
-    - DRONE_TAG
   build_args:
-    - ARCH=-arm
+    - ARCH=arm
+    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
     password:

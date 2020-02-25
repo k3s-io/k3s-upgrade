@@ -10,9 +10,8 @@ k3s-upgrade is an image that is responsible of upgrading k3s version via the [Sy
 To build the k3s-upgrade image locally, you can run the following:
 
 ```
-REPO=myorg
-VERSION=v1.17.2-k3s1
-docker build --build-arg DRONE_TAG=$VERSION -t $REPO/k3s-upgrade:$VERSION .
+export ARCH=amd64 TAG=v1.17.2+k3s1
+docker build --build-arg ARCH --build-arg TAG --tag ${REPO:=rancher}/k3s-upgrade:${TAG/+/-} .
 ```
 
 ## Usage
