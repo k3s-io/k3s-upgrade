@@ -16,11 +16,11 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args:
-    - ARCH=amd64
-    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
+    build_args:
+      - ARCH=amd64
+      - TAG=${DRONE_TAG}
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
@@ -58,11 +58,11 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args:
-    - ARCH=arm64
-    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
+    build_args:
+      - ARCH=arm64
+      - TAG=${DRONE_TAG}
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
@@ -100,11 +100,11 @@ steps:
       path: /var/run/docker.sock
 - name: docker-publish
   image: plugins/docker
-  build_args:
-    - ARCH=arm
-    - TAG=${DRONE_TAG}
   settings:
     dockerfile: Dockerfile
+    build_args:
+      - ARCH=arm
+      - TAG=${DRONE_TAG}
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
