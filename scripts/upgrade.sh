@@ -48,21 +48,46 @@ kill_k3s_process() {
 }
 
 prepare() {
+  set +e
   KUBECTL_BIN="/opt/k3s kubectl"
   MASTER_PLAN=${1}
   if [ -z "$MASTER_PLAN" ]; then
     fatal "Master Plan name is not passed to the prepare step. Exiting"
   fi
   NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-  # make sure master plan does exist
-  ${KUBECTL_BIN} get plan $MASTER_PLAN -n $NAMESPACE &>/dev/null || fatal "master plan $MASTER_PLAN doesn't exist"
   while true; do
+    # make sure master plan does exist
+    PLAN=$(${KUBECTL_BIN} get plan $MASTER_PLAN -o jsonpath='{.metadata.name}' -n $NAMESPACE 2>/dev/null)
+    if [ -z "$PLAN" ]; then
+	    info "master plan $MASTER_PLAN doesn't exist"
+	    sleep 5
+	    continue
+    fi
     NUM_NODES=$(${KUBECTL_BIN} get plan $MASTER_PLAN -n $NAMESPACE -o json | jq '.status.applying | length')
     if [ "$NUM_NODES" == "0" ]; then
       break
     fi
     info "Waiting for all master nodes to be upgraded"
     sleep 5
+  done
+  verify_masters_versions
+}
+
+verify_masters_versions() {
+  while true; do
+    all_updated="true"
+    MASTER_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/master' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
+    if [ -z "$MASTER_NODE_VERSION" ]; then
+      sleep 5
+      continue
+    fi
+    if [ "$MASTER_NODE_VERSION" == "$SYSTEM_UPGRADE_PLAN_LATEST_VERSION" ]; then
+        info "All master nodes has been upgraded to version to $MASTER_NODE_VERSION"
+		    break
+		fi
+    info "Waiting for all master nodes to be upgraded to version $MODIFIED_VERSION"
+	  sleep 5
+	  continue
   done
 }
 
