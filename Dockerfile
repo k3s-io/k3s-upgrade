@@ -16,7 +16,7 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
       export ARTIFACT="k3s-arm64"; \
     fi \
  && curl --output ${ARTIFACT}  --fail --location https://github.com/rancher/k3s/releases/download/${TAG}/${ARTIFACT} \
- && grep -v k3s-airgap sha256sum-${ARCH}.txt | sha256sum -c \
+ && grep -E " k3s(-arm\w*)?$" sha256sum-${ARCH}.txt | sha256sum -c \
  && mv -vf ${ARTIFACT} /opt/k3s \
  && chmod +x /opt/k3s \
  && file /opt/k3s
