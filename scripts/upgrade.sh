@@ -30,11 +30,17 @@ get_k3s_process_info() {
 
 replace_binary() {
   NEW_BINARY="/opt/k3s"
-  info "Deploying new k3s binary to $K3S_BIN_PATH"
+  FULL_BIN_PATH="/host$K3S_BIN_PATH"
   if [ ! -f $NEW_BINARY ]; then
     fatal "The new binary $NEW_BINARY doesn't exist"
   fi
-  FULL_BIN_PATH="/host$K3S_BIN_PATH"
+  info "Comparing old and new binaries"
+  BIN_COUNT="$(sha256sum $NEW_BINARY $FULL_BIN_PATH | cut -d" " -f1 | uniq | wc -l)"
+  if [ $BIN_COUNT == "1" ]; then
+    info "Binary already been replaced"
+    exit 0
+  fi	  	
+  info "Deploying new k3s binary to $K3S_BIN_PATH"
   cp $NEW_BINARY $FULL_BIN_PATH
   info "K3s binary has been replaced successfully"
   return
