@@ -12,7 +12,7 @@ fatal()
 }
 
 get_k3s_process_info() {
-  K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver)" | awk '{print $1}')
+  K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | sed 's/--cluster-init//' | grep -E -v "(init|grep|channelserver)" | awk '{print $1}')
   if [ -z "$K3S_PID" ]; then
     fatal "K3s is not running on this server"
   fi
