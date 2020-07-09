@@ -61,3 +61,7 @@ spec:
 ``` 
 
 The upgrade controller should watch for this plan and execute the upgrade on the labeled nodes. For more information about system-upgrade-controller and plan options please visit [system-upgrade-controller](https://github.com/rancher/system-upgrade-controller) official repo.
+
+# Contact
+For bugs, questions, comments, corrections, suggestions, etc., open an issue in
+ [rancher/k3s](//github.com/rancher/k3s/issues) with a title starting with `[k3s-upgrade] `.
