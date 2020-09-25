@@ -25,7 +25,7 @@ FROM ${ALPINE}
 ARG ARCH
 ARG TAG
 RUN apk --no-cache add \
-    jq
+    jq libselinux-utils
 COPY --from=verify /opt/k3s /opt/k3s
 COPY scripts/upgrade.sh /bin/upgrade.sh
 ENTRYPOINT ["/bin/upgrade.sh"]
