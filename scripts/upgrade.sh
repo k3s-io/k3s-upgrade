@@ -39,9 +39,14 @@ replace_binary() {
   if [ $BIN_COUNT == "1" ]; then
     info "Binary already been replaced"
     exit 0
-  fi	  	
+  fi
+  K3S_CONTEXT=$(getfilecon $FULL_BIN_PATH 2>/dev/null | awk '{print $2}' || true)
   info "Deploying new k3s binary to $K3S_BIN_PATH"
   cp $NEW_BINARY $FULL_BIN_PATH
+  if [ -n "${K3S_CONTEXT}" ]; then
+    info 'Restoring k3s bin context'
+    setfilecon "${K3S_CONTEXT}" $FULL_BIN_PATH
+  fi
   info "K3s binary has been replaced successfully"
   return
 }
