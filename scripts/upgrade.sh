@@ -104,18 +104,12 @@ verify_masters_versions() {
 
 replace_config_file(){
 KUBECTL_BIN="/opt/k3s kubectl"
-labels=$(${KUBECTL_BIN} get nodes $HOSTNAME  --show-labels | tail -n +2  | awk '{print $6}' )
-list=$(echo $labels | tr "," "\n" | tr "=" "-")
-echo $list
+CONFIG_FILE="/host/etc/rancher/k3s/config.yaml"
+LABELS=$(${KUBECTL_BIN} get nodes $HOSTNAME  --show-labels | tail -n +2  | awk '{print $6}' )
+LIST=$(echo $LABELS | tr "," "\n" | tr "=" "-")
+echo $LIST
 ls /host/opt/k3s
-for label in $list
-do
-  if test -f "/host/opt/k3s/$label" ; then
-    cp /host/opt/k3s/$label /host/etc/rancher/k3s/config.yaml
-   echo "copied /host/opt/k3s/$label"
-   return
-   fi
-done
+config-modifier --hostPath $CONFIG_FILE --configPath /host/opt/k3s/ --nodeLabels $(echo $LIST |  sed "s/ / --nodeLabels /g")
 }
 
 config(){

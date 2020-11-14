@@ -21,6 +21,12 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
  && chmod +x /opt/k3s \
  && file /opt/k3s
 
+RUN set -x \
+ && apk --no-cache add curl \
+ && curl -fsSLO https://github.com/MonzElmasry/config-modifier/releases/download/v0.0.0/config-modifier \
+ && chmod +x config-modifier
+
+
 FROM ${ALPINE}
 ARG ARCH
 ARG TAG
@@ -28,5 +34,6 @@ RUN apk --no-cache add \
     jq libselinux-utils
 COPY --from=verify /opt/k3s /opt/k3s
 COPY scripts/upgrade.sh /bin/upgrade.sh
+COPY --from=verify /verify/config-modifier /usr/local/bin/config-modifier
 ENTRYPOINT ["/bin/upgrade.sh"]
 CMD ["upgrade"]
