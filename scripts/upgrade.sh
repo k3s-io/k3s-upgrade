@@ -109,7 +109,7 @@ LABELS=$(${KUBECTL_BIN} get nodes $HOSTNAME  --show-labels | tail -n +2  | awk '
 LIST=$(echo $LABELS | tr "," "\n" | tr "=" "-")
 echo $LIST
 ls /host/opt/k3s
-config-modifier --hostPath $CONFIG_FILE --configPath /host/opt/k3s/ --nodeLabels $(echo $LIST |  sed "s/ / --nodeLabels /g")
+config-modifier --host-path $CONFIG_FILE --config-path /host/opt/k3s/ --preserved-entries "datastore-endpoint" --preserved-entries "token" --node-labels $(echo $LIST |  sed "s/ / --node-labels /g")
 }
 
 config(){

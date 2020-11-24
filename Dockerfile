@@ -23,7 +23,8 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
 
 RUN set -x \
  && apk --no-cache add curl \
- && curl -fsSLO https://github.com/rancher/config-modifier/releases/download/v0.0.0/config-modifier \
+ && curl -fsSLO https://github.com/rancher/config-modifier/releases/download/v0.0.1/config-modifier-${ARCH} \
+ && mv -vf config-modifier-${ARCH} config-modifier \
  && chmod +x config-modifier
 
 
