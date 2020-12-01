@@ -21,6 +21,7 @@ steps:
     build_args:
       - ARCH=amd64
       - TAG=${DRONE_TAG}
+      - MODIFIER_VERSION=v0.0.1
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
@@ -63,6 +64,7 @@ steps:
     build_args:
       - ARCH=arm64
       - TAG=${DRONE_TAG}
+      - MODIFIER_VERSION=v0.0.1
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"
@@ -105,6 +107,7 @@ steps:
     build_args:
       - ARCH=arm
       - TAG=${DRONE_TAG}
+      - MODIFIER_VERSION=v0.0.1
     password:
       from_secret: docker_password
     repo: "rancher/k3s-upgrade"

@@ -103,13 +103,11 @@ verify_masters_versions() {
 }
 
 replace_config_file(){
-KUBECTL_BIN="/opt/k3s kubectl"
-CONFIG_FILE="/host/etc/rancher/k3s/config.yaml"
-LABELS=$(${KUBECTL_BIN} get nodes $HOSTNAME  --show-labels | tail -n +2  | awk '{print $6}' )
-LIST=$(echo $LABELS | tr "," "\n" | tr "=" "-")
-echo $LIST
-ls /host/opt/k3s
-config-modifier --host-path $CONFIG_FILE --config-path /host/opt/k3s/ --preserved-entries "datastore-endpoint" --preserved-entries "token" --node-labels $(echo $LIST |  sed "s/ / --node-labels /g")
+  KUBECTL_BIN="/opt/k3s kubectl"
+  CONFIG_FILE="/host/etc/rancher/k3s/config.yaml"
+  LABELS=$(${KUBECTL_BIN} get nodes $HOSTNAME  --show-labels | tail -n +2  | awk '{print $6}' )
+  LIST=$(echo $LABELS | tr "," "\n" | tr "=" "-")
+  config-modifier --host-path $CONFIG_FILE --config-path /host/opt/k3s/ --preserved-entries "datastore-endpoint" --preserved-entries "token" --node-labels $(echo $LIST |  sed "s/ / --node-labels /g")
 }
 
 config(){

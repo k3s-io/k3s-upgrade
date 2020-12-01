@@ -2,6 +2,7 @@ ARG ALPINE=alpine:3.11
 FROM ${ALPINE} AS verify
 ARG ARCH
 ARG TAG
+ARG MODIFIER_VERSION
 WORKDIR /verify
 ADD https://github.com/rancher/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
 RUN set -x \
@@ -23,10 +24,9 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
 
 RUN set -x \
  && apk --no-cache add curl \
- && curl -fsSLO https://github.com/rancher/config-modifier/releases/download/v0.0.1/config-modifier-${ARCH} \
+ && curl -fsSLO https://github.com/rancher/config-modifier/releases/download/${MODIFIER_VERSION}/config-modifier-${ARCH} \
  && mv -vf config-modifier-${ARCH} config-modifier \
  && chmod +x config-modifier
-
 
 FROM ${ALPINE}
 ARG ARCH
