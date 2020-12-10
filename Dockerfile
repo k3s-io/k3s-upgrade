@@ -3,7 +3,7 @@ FROM ${ALPINE} AS verify
 ARG ARCH
 ARG TAG
 WORKDIR /verify
-ADD https://github.com/rancher/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
+ADD https://github.com/k3s-io/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
 RUN set -x \
  && apk --no-cache add \
     curl \
@@ -15,7 +15,7 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
     elif [ "${ARCH}" == "arm64" ]; then \
       export ARTIFACT="k3s-arm64"; \
     fi \
- && curl --output ${ARTIFACT}  --fail --location https://github.com/rancher/k3s/releases/download/${TAG}/${ARTIFACT} \
+ && curl --output ${ARTIFACT}  --fail --location https://github.com/k3s-io/k3s/releases/download/${TAG}/${ARTIFACT} \
  && grep -E " k3s(-arm\w*)?$" sha256sum-${ARCH}.txt | sha256sum -c \
  && mv -vf ${ARTIFACT} /opt/k3s \
  && chmod +x /opt/k3s \
