@@ -28,7 +28,7 @@ steps:
       from_secret: docker_username
   when:
     instance:
-    - drone-publish.rancher.io
+    - drone-publish.k3s.io
     ref:
     - refs/head/master
     - refs/tags/*
@@ -70,7 +70,7 @@ steps:
       from_secret: docker_username
   when:
     instance:
-    - drone-publish.rancher.io
+    - drone-publish.k3s.io
     ref:
     - refs/head/master
     - refs/tags/*
@@ -112,7 +112,7 @@ steps:
       from_secret: docker_username
   when:
     instance:
-    - drone-publish.rancher.io
+    - drone-publish.k3s.io
     ref:
     - refs/head/master
     - refs/tags/*
@@ -150,7 +150,7 @@ steps:
         - DRONE_TAG
     when:
       instance:
-        - drone-publish.rancher.io
+        - drone-publish.k3s.io
       ref:
         - refs/head/master
         - refs/tags/*
