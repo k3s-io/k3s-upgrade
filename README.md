@@ -64,4 +64,4 @@ The upgrade controller should watch for this plan and execute the upgrade on the
 
 # Contact
 For bugs, questions, comments, corrections, suggestions, etc., open an issue in
- [rancher/k3s](//github.com/rancher/k3s/issues) with a title starting with `[k3s-upgrade] `.
+ [k3s-io/k3s](//github.com/k3s-io/k3s/issues) with a title starting with `[k3s-upgrade] `.
