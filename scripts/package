@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+
+source $(dirname $0)/version
+
+cd $(dirname $0)/..
+
+mkdir -p dist/artifacts
+cp bin/k3s-upgrade dist/artifacts/k3s-upgrade${SUFFIX}
+
+IMAGE=${REPO}/k3s-upgrade:${TAG/+/-}
+DOCKERFILE=package/Dockerfile
+if [ -e ${DOCKERFILE}.${ARCH} ]; then
+    DOCKERFILE=${DOCKERFILE}.${ARCH}
+fi
+docker build --build-arg ARCH=${ARCH} --build-arg TAG=${TAG} -f ${DOCKERFILE} -t ${IMAGE} .
+echo Built ${IMAGE}

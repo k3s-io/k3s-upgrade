@@ -27,6 +27,5 @@ ARG TAG
 RUN apk --no-cache add \
     jq libselinux-utils
 COPY --from=verify /opt/k3s /opt/k3s
-COPY scripts/upgrade.sh /bin/upgrade.sh
-ENTRYPOINT ["/bin/upgrade.sh"]
-CMD ["upgrade"]
+COPY bin/k3s-upgrade /usr/bin/
+ENTRYPOINT ["/usr/bin/k3s-upgrade"]

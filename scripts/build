@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+source $(dirname $0)/version
+
+cd $(dirname $0)/..
+
+mkdir -p bin
+if [ "$(uname)" = "Linux" ]; then
+    OTHER_LINKFLAGS="-extldflags -static -s -tag selinux"
+fi
+LINKFLAGS="-X github.com/rancher/k3s-upgrade.Version=$VERSION"
+LINKFLAGS="-X github.com/rancher/k3s-upgrade.GitCommit=$COMMIT $LINKFLAGS"
+CGO_ENABLED=0 go build -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/k3s-upgrade
