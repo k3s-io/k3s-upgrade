@@ -7,7 +7,7 @@ cd $(dirname $0)/..
 
 mkdir -p bin
 if [ "$(uname)" = "Linux" ]; then
-    OTHER_LINKFLAGS="-extldflags -static -s -tag selinux"
+    OTHER_LINKFLAGS="-extldflags '-static -s -selinux'"
 fi
 LINKFLAGS="-X github.com/rancher/k3s-upgrade.Version=$VERSION"
 LINKFLAGS="-X github.com/rancher/k3s-upgrade.GitCommit=$COMMIT $LINKFLAGS"

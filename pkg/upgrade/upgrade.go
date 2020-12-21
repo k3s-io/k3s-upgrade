@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/mitchellh/go-ps"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/rancher/k3s-upgrade/pkg/types"
@@ -41,10 +43,14 @@ func GetProcessPID() (int, error) {
 		return 0, err
 	}
 	for _, proc := range processes {
-		if strings.HasSuffix(proc.Executable(), "k3s") {
-			if strings.Contains(proc.Executable(), "init") || strings.Contains(proc.Executable(), "channelserver") {
+		fmt.Println(proc.Executable())
+		if strings.Contains(proc.Executable(), "k3s") {
+			if strings.Contains(proc.Executable(), "init") ||
+				strings.Contains(proc.Executable(), "channelserver") ||
+				strings.Contains(proc.Executable(), "upgrade") {
 				continue
 			}
+			fmt.Println(proc.Executable(), proc.Pid())
 			return proc.Pid(), nil
 		}
 	}
@@ -60,8 +66,10 @@ func GetBinPath(pid int) (string, error) {
 		return "/bin/k3s", nil
 	}
 	binPath, err := ioutil.ReadFile(path.Join("/host/proc", strconv.Itoa(pid), "cmdline"))
-	if fileExists(string(binPath)) {
-		return string(binPath), nil
+	actualPath := strings.Split(string(binPath), " ")[0] //k3s
+	actualPath = strings.Split(actualPath, "\x00")[0]    //k3d
+	if err == nil {
+		return actualPath, nil
 	}
 	return "", fmt.Errorf(" failed to fetch the k3s binary path from process %d", pid)
 }
@@ -69,7 +77,7 @@ func GetBinPath(pid int) (string, error) {
 func TermProcess(pid int) error {
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		fmt.Errorf(" process is not found")
+		return err
 	}
 	return proc.Signal(syscall.SIGTERM)
 }
@@ -104,7 +112,10 @@ func MatchSelector(hostPath, configPath string, preservedEntries []string) error
 		if err != nil {
 			return err
 		}
-		yaml.Unmarshal(fileContent, secret)
+		err = yaml.Unmarshal(fileContent, secret)
+		if err != nil {
+			return err
+		}
 		selector, err := v1.LabelSelectorAsSelector(&secret.Selector)
 		if err != nil {
 			return err
@@ -120,7 +131,7 @@ func MatchSelector(hostPath, configPath string, preservedEntries []string) error
 
 func PlaceConfigFile(hostPath string, config map[string]interface{}, preservedEntries []string) error {
 	preserved := make(map[string]interface{})
-	if fileExists(hostPath) {
+	if _, err := os.Stat(hostPath); err != nil {
 		logrus.Infof("config file exists on the host")
 		filetxt, err := ioutil.ReadFile(hostPath)
 		if err != nil {
@@ -136,6 +147,8 @@ func PlaceConfigFile(hostPath string, config map[string]interface{}, preservedEn
 				preserved[entry] = hostconfig[entry]
 			}
 		}
+	} else {
+		return err
 	}
 
 	for entry := range preserved {
@@ -145,7 +158,7 @@ func PlaceConfigFile(hostPath string, config map[string]interface{}, preservedEn
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(hostPath, content, 0755)
+	return ioutil.WriteFile(hostPath, content, 0600)
 }
 
 func sortFileByName(files []os.FileInfo) []os.FileInfo {
@@ -161,39 +174,58 @@ func ReplaceBinary() error {
 	if err != nil {
 		return err
 	}
-	fullBinPath, err := GetBinPath(pid)
+	binPath, err := GetBinPath(pid)
+	if err != nil {
+		return errors.Wrap(err, "1")
+	}
+	if _, err = os.Stat(newBinaryPath); err != nil {
+		return errors.Wrap(err, "2")
+	}
+	fullBinPath := path.Join("/host", binPath)
+	con, err := selinux.FileLabel(fullBinPath)
+	if err != nil {
+		con = ""
+	}
+	//con, err := selinux.Getfilecon(fullBinPath)
+	tmpdir, err := ioutil.TempDir(filepath.Split(fullBinPath))
+	if err != nil {
+		return errors.Wrap(err, "7")
+	}
+	tmpfile, err := ioutil.TempFile(tmpdir, "tmp")
+	if err != nil {
+		return errors.Wrap(err, "6")
+	}
+	defer os.Remove(tmpdir)
+	content, err := ioutil.ReadFile(newBinaryPath)
+	if _, err := tmpfile.Write(content); err != nil {
+		return errors.Wrap(err, "4")
+	}
+	orgBinInfo, err := os.Stat(fullBinPath)
 	if err != nil {
 		return err
 	}
-	if !fileExists(newBinaryPath) {
-		return fmt.Errorf("the new binary doesnt exist")
-	}
-	file, err := filepath.Abs(fullBinPath)
+	fileMode := orgBinInfo.Mode()
+	fmt.Println("tmp", tmpfile.Name())
+	err = os.Rename(tmpfile.Name(), fullBinPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "5")
 	}
-	con, err := selinux.FileLabel(file)
-	if err != nil {
-		return err
-	}
-	//	con, err := selinux.Getfilecon(fullBinPath)
-	err = os.Rename(fullBinPath, newBinaryPath)
-	if err != nil {
-		return err
-	}
+	err = os.Chmod(fullBinPath, fileMode)
 	if con != "" {
 		selinux.Chcon(fullBinPath, con, true)
-		//selinux.Setfilecon(fullBinPath, filecon)
+		//selinux.Setfilecon(fullBinPath, con)
 	}
 	return nil
 }
 
 func Prepare(masterPlan string) error {
+	fmt.Println("in prepare container")
 	kubeconfig := os.Getenv("KUBECONFIG")
 	conf, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return err
 	}
+	fmt.Println("after kubeconfig")
 
 	plansClient := dynamic.NewForConfigOrDie(conf).Resource(schema.GroupVersionResource{
 		Group:    "upgrade.cattle.io",
@@ -204,10 +236,14 @@ func Prepare(masterPlan string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("after namespace", string(namespace))
+
 	masterplans, err := plansClient.Namespace(string(namespace)).Get(context.Background(), masterPlan, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	fmt.Println("after master-plan")
+
 	applyingNodes, found, err := unstructured.NestedSlice(masterplans.Object, "status", "applying")
 	if !found || err != nil {
 		return err
@@ -215,22 +251,29 @@ func Prepare(masterPlan string) error {
 	if len(applyingNodes) == 0 {
 		return nil
 	}
-	verifyMasterVersion(os.Getenv("SYSTEM_UPGRADE_PLAN_LATEST_VERSION"))
-	return nil
+	fmt.Println("after applying nodes")
+
+	return verifyMasterVersion(os.Getenv("SYSTEM_UPGRADE_PLAN_LATEST_VERSION"))
+
 }
 
 func verifyMasterVersion(masterVersion string) error {
 	kubeconfig := os.Getenv("KUBECONFIG")
+	fmt.Println("after kubeconfig")
 	conf, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return err
 	}
+	fmt.Println("after conf")
+
 	nodeClient := kubernetes.NewForConfigOrDie(conf).CoreV1().Nodes()
+	fmt.Println("after nodeclient")
+
 	for {
 		done := true
 		masterNodes, err := nodeClient.List(context.Background(), v1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
 		if err != nil {
-			return err
+			fmt.Println("cant get master nodes")
 		}
 		for _, node := range masterNodes.Items {
 			if node.Status.NodeInfo.KubeletVersion != masterVersion {
