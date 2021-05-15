@@ -87,16 +87,22 @@ prepare() {
 verify_masters_versions() {
   while true; do
     all_updated="true"
-    MASTER_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/master' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
+    # "control-plane" was introduced in k8s 1.20
+    # "master" is deprecated and will be removed in 1.24
+    # we need to check for both to upgrade old clusters
+    MASTER_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/control-plane' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
+    if [ -z "$MASTER_NODE_VERSION" ]; then
+      MASTER_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/master' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
+    fi
     if [ -z "$MASTER_NODE_VERSION" ]; then
       sleep 5
       continue
     fi
     if [ "$MASTER_NODE_VERSION" == "$SYSTEM_UPGRADE_PLAN_LATEST_VERSION" ]; then
-        info "All master nodes has been upgraded to version to $MASTER_NODE_VERSION"
+        info "All control plane nodes has been upgraded to version to $MASTER_NODE_VERSION"
 		    break
 		fi
-    info "Waiting for all master nodes to be upgraded to version $MODIFIED_VERSION"
+    info "Waiting for all control plane nodes to be upgraded to version $MODIFIED_VERSION"
 	  sleep 5
 	  continue
   done
