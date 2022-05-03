@@ -14,9 +14,11 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
       export ARTIFACT="k3s-armhf"; \
     elif [ "${ARCH}" == "arm64" ]; then \
       export ARTIFACT="k3s-arm64"; \
+    elif [ "${ARCH}" == "s390x" ]; then \
+      export ARTIFACT="k3s-s390x"; \
     fi \
  && curl --output ${ARTIFACT}  --fail --location https://github.com/k3s-io/k3s/releases/download/${TAG}/${ARTIFACT} \
- && grep -E " k3s(-arm\w*)?$" sha256sum-${ARCH}.txt | sha256sum -c \
+ && grep -E " k3s(-arm\w*|-s390x)?$" sha256sum-${ARCH}.txt | sha256sum -c \
  && mv -vf ${ARTIFACT} /opt/k3s \
  && chmod +x /opt/k3s \
  && file /opt/k3s
