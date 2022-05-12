@@ -13,7 +13,7 @@ fatal()
 
 get_k3s_process_info() {
   K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
-  K3S_PPID=$(ps -p $K3S_PID -o ppid=)
+  K3S_PPID=$(ps -p $K3S_PID -o ppid= | tr -s ' ')
   if [ -z "$K3S_PID" ]; then
     fatal "K3s is not running on this server"
   fi
