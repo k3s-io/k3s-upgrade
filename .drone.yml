@@ -176,7 +176,7 @@ steps:
     username:
       from_secret: docker_username
   volumes:
-    - name: socket
+    - name: docker
       path: /var/run/docker.sock
   when:
     instance:
