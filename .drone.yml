@@ -182,8 +182,11 @@ steps:
     instance:
     - drone-publish.k3s.io
     ref:
-    - refs/head/master
-    - refs/tags/*
+      include:
+      - refs/head/master
+      - refs/tags/*
+      exclude:
+      - refs/tags/v1.21.*
     event:
     - tag
 
