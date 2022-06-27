@@ -5,7 +5,7 @@ set -e -x
 if [ -z "${DRONE_TAG}" ]; then
   echo "DRONE_TAG not defined" >&2
   exit 1
-elif echo "${DRONE_TAG}" | grep -E '^1.21.\d*.*$'; then
+elif echo "${DRONE_TAG}" | grep -E '1.21.\d*.*'; then
   export PLUGIN_PLATFORMS="linux/amd64,linux/arm64,linux/arm"
 else
   export PLUGIN_PLATFORMS="linux/amd64,linux/arm64,linux/arm,linux/s390x"
