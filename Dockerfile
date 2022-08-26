@@ -1,4 +1,4 @@
-ARG ALPINE=alpine:3.15.4
+ARG ALPINE=alpine:3.16.2
 FROM ${ALPINE} AS verify
 ARG ARCH
 ARG TAG
