@@ -12,12 +12,16 @@ fatal()
 }
 
 get_k3s_process_info() {
-  K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $1}')
+  K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
+  K3S_PPID=$(ps -p $K3S_PID -o ppid= | xargs)
   if [ -z "$K3S_PID" ]; then
     fatal "K3s is not running on this server"
   fi
   info "K3S binary is running with pid $K3S_PID"
   K3S_BIN_PATH=$(cat /host/proc/${K3S_PID}/cmdline | awk '{print $1}' | head -n 1)
+  if [ "$K3S_PPID" != "1" ]; then
+    K3S_BIN_PATH=$(cat /host/proc/${K3S_PPID}/cmdline | awk '{print $1}' | head -n 1)
+  fi
   if [ "$K3S_PID" == "1" ]; then
     # add exception for k3d clusters
     K3S_BIN_PATH="/bin/k3s"
