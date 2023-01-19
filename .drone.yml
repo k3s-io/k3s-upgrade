@@ -119,7 +119,7 @@ steps:
     - name: docker
       path: /var/run/docker.sock
 - name: docker-publish
-  image: plugins/docker
+  image: plugins/docker:linux-arm
   settings:
     dockerfile: Dockerfile
     build_args:
