@@ -13,21 +13,38 @@ fatal()
 
 get_k3s_process_info() {
   K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
-  K3S_PPID=$(ps -p $K3S_PID -o ppid= | xargs)
+
   if [ -z "$K3S_PID" ]; then
     fatal "K3s is not running on this server"
   fi
-  info "K3S binary is running with pid $K3S_PID"
-  K3S_BIN_PATH=$(cat /host/proc/${K3S_PID}/cmdline | awk '{print $1}' | head -n 1)
-  if [ "$K3S_PPID" != "1" ]; then
-    K3S_BIN_PATH=$(cat /host/proc/${K3S_PPID}/cmdline | awk '{print $1}' | head -n 1)
+
+  if [ "$(echo $K3S_PID | wc -w)" != "1" ]; then
+    for PID in $K3S_PID; do
+      ps -fp $PID || true
+    done
+    fatal "Found multiple K3s pids"
   fi
+
+  K3S_PPID=$(ps -p $K3S_PID -o ppid= | awk '{print $1}')
+  info "K3S binary is running with pid $K3S_PID, parent pid $K3S_PPID"
+
+  # When running with the --log flag, the 'k3s server|agent' process is nested under a 'k3s init' process.
+  # If the parent pid is not 1 (init/systemd) then we are nested and need to operate against that 'k3s init' pid instead.
+  # Make sure that the parent pid is actually k3s though, as openrc systems may run k3s under supervise-daemon instead of
+  # as a child process of init.
+  if [ "$K3S_PPID" != "1" ] && grep -qs k3s /host/proc/${K3S_PPID}/cmdline; then
+    K3S_PID="${K3S_PPID}"
+  fi
+
+  # When running in k3d, k3s will be pid 1 and is always at /bin/k3s
   if [ "$K3S_PID" == "1" ]; then
-    # add exception for k3d clusters
     K3S_BIN_PATH="/bin/k3s"
+  else
+    K3S_BIN_PATH=$(awk 'NR==1 {print $1}' /host/proc/${K3S_PID}/cmdline)
   fi
+
   if [ -z "$K3S_BIN_PATH" ]; then
-    fatal "Failed to fetch the k3s binary path from process $K3S_PID"
+    fatal "Failed to fetch the k3s binary path from pid $K3S_PID"
   fi
   return
 }
@@ -35,22 +52,33 @@ get_k3s_process_info() {
 replace_binary() {
   NEW_BINARY="/opt/k3s"
   FULL_BIN_PATH="/host$K3S_BIN_PATH"
-  if [ ! -f $NEW_BINARY ]; then
+
+  if [ ! -f "$NEW_BINARY" ]; then
     fatal "The new binary $NEW_BINARY doesn't exist"
   fi
+
   info "Comparing old and new binaries"
-  BIN_COUNT="$(sha256sum $NEW_BINARY $FULL_BIN_PATH | cut -d" " -f1 | uniq | wc -l)"
-  if [ $BIN_COUNT == "1" ]; then
+  BIN_CHECKSUMS="$(sha256sum $NEW_BINARY $FULL_BIN_PATH)"
+
+  if [ "$?" != "0" ]; then
+    fatal "Failed to calculate binary checksums"
+  fi
+
+  BIN_COUNT="$(echo "${BIN_CHECKSUMS}" | awk '{print $1}' | uniq | wc -l)"
+  if [ "$BIN_COUNT" == "1" ]; then
     info "Binary already been replaced"
     exit 0
   fi
+
   K3S_CONTEXT=$(getfilecon $FULL_BIN_PATH 2>/dev/null | awk '{print $2}' || true)
   info "Deploying new k3s binary to $K3S_BIN_PATH"
   cp $NEW_BINARY $FULL_BIN_PATH
+
   if [ -n "${K3S_CONTEXT}" ]; then
     info 'Restoring k3s bin context'
     setfilecon "${K3S_CONTEXT}" $FULL_BIN_PATH
   fi
+
   info "K3s binary has been replaced successfully"
   return
 }
@@ -59,48 +87,49 @@ kill_k3s_process() {
     # the script sends SIGTERM to the process and let the supervisor
     # to automatically restart k3s with the new version
     kill -SIGTERM $K3S_PID
-    info "Successfully Killed old k3s process $K3S_PID"
+    info "Successfully killed old k3s pid $K3S_PID"
 }
 
 prepare() {
   set +e
   KUBECTL_BIN="/opt/k3s kubectl"
-  MASTER_PLAN=${1}
-  if [ -z "$MASTER_PLAN" ]; then
-    fatal "Master Plan name is not passed to the prepare step. Exiting"
+  CONTROLPLANE_PLAN=${1}
+
+  if [ -z "$CONTROLPLANE_PLAN" ]; then
+    fatal "Control-plane Plan name was not passed to the prepare step. Exiting"
   fi
+
   NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
   while true; do
-    # make sure master plan does exist
-    PLAN=$(${KUBECTL_BIN} get plan $MASTER_PLAN -o jsonpath='{.metadata.name}' -n $NAMESPACE 2>/dev/null)
+    # make sure control-plane plan does exist
+    PLAN=$(${KUBECTL_BIN} get plan $CONTROLPLANE_PLAN -o jsonpath='{.metadata.name}' -n $NAMESPACE 2>/dev/null)
     if [ -z "$PLAN" ]; then
-	    info "master plan $MASTER_PLAN doesn't exist"
+	    info "Waiting for control-plane Plan $CONTROLPLANE_PLAN to be created"
 	    sleep 5
 	    continue
     fi
-    NUM_NODES=$(${KUBECTL_BIN} get plan $MASTER_PLAN -n $NAMESPACE -o json | jq '.status.applying | length')
+    NUM_NODES=$(${KUBECTL_BIN} get plan $CONTROLPLANE_PLAN -n $NAMESPACE -o json | jq '.status.applying | length')
     if [ "$NUM_NODES" == "0" ]; then
       break
     fi
-    info "Waiting for all master nodes to be upgraded"
+    info "Waiting for all control-plane nodes to be upgraded"
     sleep 5
   done
-  verify_masters_versions
+  verify_controlplane_versions
 }
 
-verify_masters_versions() {
+verify_controlplane_versions() {
   while true; do
-    all_updated="true"
-    MASTER_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/master' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
-    if [ -z "$MASTER_NODE_VERSION" ]; then
+    CONTROLPLANE_NODE_VERSION=$(${KUBECTL_BIN} get nodes --selector='node-role.kubernetes.io/control-plane' -o json | jq -r '.items[].status.nodeInfo.kubeletVersion' | sort -u | tr '+' '-')
+    if [ -z "$CONTROLPLANE_NODE_VERSION" ]; then
       sleep 5
       continue
     fi
-    if [ "$MASTER_NODE_VERSION" == "$SYSTEM_UPGRADE_PLAN_LATEST_VERSION" ]; then
-        info "All master nodes has been upgraded to version to $MASTER_NODE_VERSION"
+    if [ "$CONTROLPLANE_NODE_VERSION" == "$SYSTEM_UPGRADE_PLAN_LATEST_VERSION" ]; then
+        info "All control-plane nodes have been upgraded to version to $CONTROLPLANE_NODE_VERSION"
 		    break
 		fi
-    info "Waiting for all master nodes to be upgraded to version $MODIFIED_VERSION"
+    info "Waiting for all control-plane nodes to be upgraded to version $MODIFIED_VERSION"
 	  sleep 5
 	  continue
   done
