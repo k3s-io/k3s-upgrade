@@ -12,12 +12,21 @@ fatal()
 }
 
 get_k3s_process_info() {
-  K3S_PID=$(ps -ef | grep -E "k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
+  K3S_PID=$(ps -ef | grep -E "( |/)k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
 
-  if [ -z "$K3S_PID" ]; then
-    fatal "K3s is not running on this server"
+  # If we found multiple pids, and the kernel exposes pid namespaces through procfs, filter out any pids
+  # not running in the init pid namespace. This will exclude copies of k3s running in containers.
+  if [ "$(echo $K3S_PID | wc -w)" != "1" ] && [ -e /proc/1/ns/pid ]; then
+    K3S_PID=$(for PID in $K3S_PID; do if [ $(readlink /proc/1/ns/pid) == $(readlink /proc/$PID/ns/pid) ]; then echo $PID; fi; done)
   fi
 
+  # Check to see if we have any pids left
+  if [ -z "$K3S_PID" ]; then
+    fatal "No K3s pids found; is K3s running on this host?"
+  fi
+
+  # If we still have multiple pids, print out the matching process info for troubleshooting purposes,
+  # and exit with a fatal error.
   if [ "$(echo $K3S_PID | wc -w)" != "1" ]; then
     for PID in $K3S_PID; do
       ps -fp $PID || true
