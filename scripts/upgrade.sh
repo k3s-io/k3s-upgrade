@@ -41,7 +41,7 @@ get_k3s_process_info() {
   # If the parent pid is not 1 (init/systemd) then we are nested and need to operate against that 'k3s init' pid instead.
   # Make sure that the parent pid is actually k3s though, as openrc systems may run k3s under supervise-daemon instead of
   # as a child process of init.
-  if [ "$K3S_PPID" != "1" ] && grep -qs k3s /host/proc/${K3S_PPID}/cmdline; then
+  if [ "$K3S_PPID" != "1" ] && grep -a k3s /host/proc/${K3S_PPID}/cmdline | grep -q -v supervise-daemon; then
     K3S_PID="${K3S_PPID}"
   fi
 
