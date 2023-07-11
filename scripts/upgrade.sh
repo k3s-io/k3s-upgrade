@@ -79,6 +79,26 @@ replace_binary() {
     exit 0
   fi
 
+  NEW_BIN_SEMVER="$($NEW_BINARY -v | grep -Po 'k3s version v\K[\d.]+')"
+  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | grep -Po 'k3s version v\K[\d.]+')"
+
+  compare_versions "$FULL_BIN_SEMVER" "$NEW_BIN_SEMVER"
+
+  if [ $? -eq 1 ]; then
+    echo "Error: Current version ${FULL_BIN_SEMVER} is higher than ${NEW_BIN_SEMVER}"
+    exit 1
+  fi
+
+  NEW_BIN_RELEASE_DATE="$($NEW_BINARY kubectl version --client=true -o yaml | grep -Po 'buildDate:\s+"\K[^"]+')"
+  FULL_NEW_BIN_RELEASE_DATE="$($FULL_BIN_PATH kubectl version --client=true -o yaml | grep -Po 'buildDate:\s+"\K[^"]+')"
+
+  compare_build_dates "$NEW_BIN_RELEASE_DATE" "$FULL_NEW_BIN_RELEASE_DATE"
+
+  if [ $? -eq 1 ]; then
+    echo "Error: Current build date ${FULL_BIN_RELEASE_DATE} is more recent than ${NEW_BIN_RELEASE_DATE}"
+    exit 1
+  fi
+
   K3S_CONTEXT=$(getfilecon $FULL_BIN_PATH 2>/dev/null | awk '{print $2}' || true)
   info "Deploying new k3s binary to $K3S_BIN_PATH"
   cp $NEW_BINARY $FULL_BIN_PATH
@@ -142,6 +162,77 @@ verify_controlplane_versions() {
 	  sleep 5
 	  continue
   done
+}
+
+# Function to compare semantic versions
+# Returns 0 if version1 <= version2, 1 otherwise
+compare_versions() {
+    version1=$1
+    version2=$2
+
+    if [ "$version1" = "$version2" ]; then
+        return 0
+    fi
+
+    IFS=.
+    set -- $version1
+    version1_parts=$#
+    set -- $version2
+    version2_parts=$#
+
+    # Append additional parts to the version with fewer parts
+    if [ $version1_parts -lt $version2_parts ]; then
+        version1="${version1}.0"
+    elif [ $version2_parts -lt $version1_parts ]; then
+        version2="${version2}.0"
+    fi
+
+    IFS=.
+    set -- $version1
+    version1_parts=$#
+    set -- $version2
+    version2_parts=$#
+
+    for i in $(seq 1 $version1_parts); do
+        num1=$(eval echo \$"$i")
+        num2=$(eval echo \$"$i")
+
+        # Remove leading zeros
+        num1=$(echo "$num1" | sed 's/^0*//')
+        num2=$(echo "$num2" | sed 's/^0*//')
+
+        if [ -z "$num1" ]; then
+            num1=0
+        fi
+
+        if [ -z "$num2" ]; then
+            num2=0
+        fi
+
+        if [ $num1 -lt $num2 ]; then
+            return 0
+        elif [ $num1 -gt $num2 ]; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+# Function to compare build dates
+# Returns 0 if build_date1 <= build_date2, 1 otherwise
+compare_build_dates() {
+    build_date1=$1
+    build_date2=$2
+
+    timestamp1=$(date -u -d "$build_date1" +%s)
+    timestamp2=$(date -u -d "$build_date2" +%s)
+
+    if [ "$timestamp1" -le "$timestamp2" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 upgrade() {
