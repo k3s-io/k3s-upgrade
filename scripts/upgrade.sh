@@ -79,8 +79,8 @@ replace_binary() {
     exit 0
   fi
 
-  NEW_BIN_SEMVER="$($NEW_BINARY -v | grep -Po 'k3s version v\K[\d.]+')"
-  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | grep -Po 'k3s version v\K[\d.]+')"
+  NEW_BIN_SEMVER="$($NEW_BINARY -v | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+')"
+  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+')"
 
   compare_versions "$FULL_BIN_SEMVER" "$NEW_BIN_SEMVER"
 
@@ -89,8 +89,8 @@ replace_binary() {
     exit 1
   fi
 
-  NEW_BIN_RELEASE_DATE="$($NEW_BINARY kubectl version --client=true -o yaml | grep -Po 'buildDate:\s+"\K[^"]+')"
-  FULL_NEW_BIN_RELEASE_DATE="$($FULL_BIN_PATH kubectl version --client=true -o yaml | grep -Po 'buildDate:\s+"\K[^"]+')"
+  NEW_BIN_RELEASE_DATE="$($NEW_BINARY kubectl version --client=true -o yaml | grep -Eo 'buildDate:[[:space:]]+"([^"]+)' | cut -d'"' -f2)"
+  FULL_NEW_BIN_RELEASE_DATE="$($FULL_BIN_PATH kubectl version --client=true -o yaml | grep -Eo 'buildDate:[[:space:]]+"([^"]+)' | cut -d'"' -f2)"
 
   compare_build_dates "$NEW_BIN_RELEASE_DATE" "$FULL_NEW_BIN_RELEASE_DATE"
 
