@@ -41,7 +41,7 @@ get_k3s_process_info() {
   # If the parent pid is not 1 (init/systemd) then we are nested and need to operate against that 'k3s init' pid instead.
   # Make sure that the parent pid is actually k3s though, as openrc systems may run k3s under supervise-daemon instead of
   # as a child process of init.
-  if [ "$K3S_PPID" != "1" ] && grep -a k3s /host/proc/"${K3S_PPID}"/cmdline | grep -q -v supervise-daemon; then
+  if [ "$K3S_PPID" != "1" ] && grep -a k3s "/host/proc/${K3S_PPID}/cmdline" | grep -q -v supervise-daemon; then
     K3S_PID="${K3S_PPID}"
   fi
 
@@ -227,14 +227,31 @@ compare_versions() {
     return 0
 }
 
+# Function to convert "2023-06-20T12:30:15Z" format to "2023-06-20 12:30:15"
+convert_date_format() {
+    date_str=$1
+    echo "$date_str" | sed 's/T/ /; s/Z//'
+}
+
 # Function to compare build dates
 # Returns 0 if build_date1 <= build_date2, 1 otherwise
 compare_build_dates() {
-    build_date1=$1
-    build_date2=$2
+    build_date1=$(convert_date_format "$1")
+    build_date2=$(convert_date_format "$2")
 
-    timestamp1=$(date -u -d "$build_date1" +%s)
-    timestamp2=$(date -u -d "$build_date2" +%s)
+    # Convert build_date1 to seconds since the epoch
+    timestamp1=$(date -u -d "$build_date1" "+%s" 2>/dev/null)
+    if [ -z "$timestamp1" ]; then
+        echo "Error: Invalid date format for build_date1."
+        return 2
+    fi
+
+    # Convert build_date2 to seconds since the epoch
+    timestamp2=$(date -u -d "$build_date2" "+%s" 2>/dev/null)
+    if [ -z "$timestamp2" ]; then
+        echo "Error: Invalid date format for build_date2."
+        return 2
+    fi
 
     if [ "$timestamp1" -le "$timestamp2" ]; then
         return 0
