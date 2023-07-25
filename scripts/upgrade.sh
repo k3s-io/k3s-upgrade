@@ -49,7 +49,7 @@ get_k3s_process_info() {
   if [ "$K3S_PID" = "1" ]; then
     K3S_BIN_PATH="/bin/k3s"
   else
-    K3S_BIN_PATH=$(awk 'NR==1 {print $1}' /host/proc/"${K3S_PID}"/cmdline)
+    K3S_BIN_PATH=$(awk 'NR==1 {print $1}' "/host/proc/${K3S_PID}/cmdline")
   fi
 
   if [ -z "$K3S_BIN_PATH" ]; then
@@ -67,7 +67,7 @@ replace_binary() {
   fi
 
   info "Comparing old and new binaries"
-  BIN_CHECKSUMS="$(sha256sum $NEW_BINARY "$FULL_BIN_PATH")"
+  BIN_CHECKSUMS="$(sha256sum "$NEW_BINARY" "$FULL_BIN_PATH")"
 
   if [ "$?" != "0" ]; then
     fatal "Failed to calculate binary checksums"
@@ -107,7 +107,7 @@ replace_binary() {
 
   K3S_CONTEXT=$(getfilecon "$FULL_BIN_PATH" 2>/dev/null | awk '{print $2}' || true)
   info "Deploying new k3s binary to $K3S_BIN_PATH"
-  cp $NEW_BINARY "$FULL_BIN_PATH"
+  cp "$NEW_BINARY" "$FULL_BIN_PATH"
 
   if [ -n "${K3S_CONTEXT}" ]; then
     info 'Restoring k3s bin context'

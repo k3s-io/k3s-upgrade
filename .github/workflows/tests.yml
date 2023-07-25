@@ -5,26 +5,30 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Run Unit Tests
+  shellcheck:
+    name: Shellcheck
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v3
       - name: Set up shell environment
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
         shell: bash
-
       - name: Run shellcheck
-        run:  shellcheck --severity warning scripts/upgrade.sh scripts/tests.sh
+        run: shellcheck --severity warning scripts/upgrade.sh scripts/tests.sh
 
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    container:
+      image: busybox
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
       - name: Run unit tests
         run: |
           cd scripts
-          chmod +x upgrade.sh tests.sh
+          chmod +x ./tests.sh
           ./tests.sh
-        shell: bash
