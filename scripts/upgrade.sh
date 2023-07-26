@@ -233,21 +233,23 @@ convert_date_format() {
     echo "$date_str" | sed 's/T/ /; s/Z//'
 }
 
-# Function to compare build dates
+# Function to compare build dates.
+# K3s releases come out monthly across all active minors, so we check that the target build is
+# from the same or newer release cycle (year and month) as the current build.
 # Returns 0 if build_date1 <= build_date2, 1 otherwise
 compare_build_dates() {
     build_date1=$(convert_date_format "$1")
     build_date2=$(convert_date_format "$2")
 
-    # Convert build_date1 to seconds since the epoch
-    timestamp1=$(date -u -d "$build_date1" "+%s" 2>/dev/null)
+    # Convert build_date1 to year and month
+    timestamp1=$(date -u -d "$build_date1" "+%Y%m" 2>/dev/null)
     if [ -z "$timestamp1" ]; then
         echo "Error: Invalid date format for build_date1."
         return 2
     fi
 
-    # Convert build_date2 to seconds since the epoch
-    timestamp2=$(date -u -d "$build_date2" "+%s" 2>/dev/null)
+    # Convert build_date2 to year and month
+    timestamp2=$(date -u -d "$build_date2" "+%Y%m" 2>/dev/null)
     if [ -z "$timestamp2" ]; then
         echo "Error: Invalid date format for build_date2."
         return 2
