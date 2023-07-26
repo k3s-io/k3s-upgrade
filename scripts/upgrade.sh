@@ -41,7 +41,7 @@ get_k3s_process_info() {
   # If the parent pid is not 1 (init/systemd) then we are nested and need to operate against that 'k3s init' pid instead.
   # Make sure that the parent pid is actually k3s though, as openrc systems may run k3s under supervise-daemon instead of
   # as a child process of init.
-  if [ "$K3S_PPID" != "1" ] && grep -a k3s "/host/proc/${K3S_PPID}/cmdline" | grep -q -v supervise-daemon; then
+  if [ "$K3S_PPID" != "1" ] && cat "/host/proc/${K3S_PPID}/cmdline" | tr "\0" " " | grep k3s | grep -q -v supervise-daemon; then
     K3S_PID="${K3S_PPID}"
   fi
 
@@ -52,7 +52,7 @@ get_k3s_process_info() {
     K3S_BIN_PATH=$(awk 'NR==1 {print $1}' "/host/proc/${K3S_PID}/cmdline")
   fi
 
-  if [ -z "$K3S_BIN_PATH" ]; then
+  if [ -z "$K3S_BIN_PATH" ] || [ ! -e "/host$K3S_BIN_PATH" ]; then
     fatal "Failed to fetch the k3s binary path from pid $K3S_PID"
   fi
   return
