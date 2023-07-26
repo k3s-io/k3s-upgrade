@@ -12,6 +12,7 @@ fatal()
 }
 
 get_k3s_process_info() {
+  # shellcheck disable=SC2009
   K3S_PID=$(ps -ef | grep -E "( |/)k3s .*(server|agent)" | grep -E -v "(init|grep|channelserver|supervise-daemon)" | awk '{print $2}')
 
   # If we found multiple pids, and the kernel exposes pid namespaces through procfs, filter out any pids
@@ -41,7 +42,7 @@ get_k3s_process_info() {
   # If the parent pid is not 1 (init/systemd) then we are nested and need to operate against that 'k3s init' pid instead.
   # Make sure that the parent pid is actually k3s though, as openrc systems may run k3s under supervise-daemon instead of
   # as a child process of init.
-  if [ "$K3S_PPID" != "1" ] && cat "/host/proc/${K3S_PPID}/cmdline" | tr "\0" " " | grep k3s | grep -q -v supervise-daemon; then
+  if [ "$K3S_PPID" != "1" ] && tr "\0" " " < "/host/proc/${K3S_PPID}/cmdline" | grep k3s | grep -q -v supervise-daemon; then
     K3S_PID="${K3S_PPID}"
   fi
 
@@ -69,6 +70,7 @@ replace_binary() {
   info "Comparing old and new binaries"
   BIN_CHECKSUMS="$(sha256sum "$NEW_BINARY" "$FULL_BIN_PATH")"
 
+  # shellcheck disable=SC2181
   if [ "$?" != "0" ]; then
     fatal "Failed to calculate binary checksums"
   fi
@@ -81,8 +83,8 @@ replace_binary() {
 
   set +e
 
-  NEW_BIN_SEMVER="$($NEW_BINARY -v | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+')"
-  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+')"
+  NEW_BIN_SEMVER="$($NEW_BINARY -v | head -1)"
+  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | head -1)"
 
   # Returns 0 if version1 <= version2, 1 otherwise
   compare_versions "$FULL_BIN_SEMVER" "$NEW_BIN_SEMVER"
@@ -170,61 +172,28 @@ verify_controlplane_versions() {
   done
 }
 
-# Function to compare semantic versions
+# Function to compare semantic versions.
+# Compares only major.minor.patch, ignoring any leading characters and trailing pre-release or build metadata.
 # Returns 0 if version1 <= version2, 1 otherwise
 compare_versions() {
-    version1="$1"
-    version2="$2"
+    version1=$(echo "$1" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+    version2=$(echo "$2" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
 
     if [ "$version1" = "$version2" ]; then
         return 0
     fi
 
     IFS=.
+
+    # shellcheck disable=SC2086
     set -- $version1
-    version1_parts=$#
+    version1=$(printf "%03d%03d%03d" "$@")
+
+    # shellcheck disable=SC2086
     set -- $version2
-    version2_parts=$#
+    version2=$(printf "%03d%03d%03d" "$@")
 
-    # Append additional parts to the version with fewer parts
-    if [ $version1_parts -lt $version2_parts ]; then
-        version1="${version1}.0"
-    elif [ $version2_parts -lt $version1_parts ]; then
-        version2="${version2}.0"
-    fi
-
-    IFS=.
-    set -- $version1
-    version1_parts=$#
-    set -- $version2
-    version2_parts=$#
-
-    for _ in $(seq 1 $version1_parts); do
-        num1=$1
-        shift
-        num2=$1
-        shift
-
-        # Remove leading zeros
-        num1=$(echo "$num1" | sed 's/^0*//')
-        num2=$(echo "$num2" | sed 's/^0*//')
-
-        if [ -z "$num1" ]; then
-            num1=0
-        fi
-
-        if [ -z "$num2" ]; then
-            num2=0
-        fi
-
-        if [ "$num1" -lt "$num2" ]; then
-            return 0
-        elif [ "$num1" -gt "$num2" ]; then
-            return 1
-        fi
-    done
-
-    return 0
+    test "$version2" -ge "$version1"
 }
 
 # Function to convert "2023-06-20T12:30:15Z" format to "2023-06-20 12:30:15"
@@ -255,11 +224,7 @@ compare_build_dates() {
         return 2
     fi
 
-    if [ "$timestamp1" -le "$timestamp2" ]; then
-        return 0
-    else
-        return 1
-    fi
+    test "$timestamp2" -ge "$timestamp1"
 }
 
 upgrade() {

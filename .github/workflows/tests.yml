@@ -17,7 +17,7 @@ jobs:
           sudo apt-get install -y shellcheck
         shell: bash
       - name: Run shellcheck
-        run: shellcheck --severity warning scripts/upgrade.sh scripts/tests.sh
+        run: shellcheck scripts/upgrade.sh scripts/tests.sh
 
   test:
     name: Run Unit Tests
