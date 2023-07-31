@@ -26,7 +26,7 @@ jobs:
       image: busybox
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
       - name: Run unit tests
         run: |
           cd scripts
