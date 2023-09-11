@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up shell environment
         run: |
           sudo apt-get update
@@ -26,7 +26,7 @@ jobs:
       image: busybox
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Run unit tests
         run: |
           cd scripts
