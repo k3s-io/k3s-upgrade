@@ -1,4 +1,4 @@
-FROM alpine:3.18.4
+FROM alpine:3.20
 
 COPY --from=plugins/manifest:1.2.3 /bin/* /bin/
 
@@ -10,6 +10,10 @@ ENV DOCKER_PASSWORD $DOCKER_PASSWORD
 
 ARG DRONE_TAG
 ENV DRONE_TAG $DRONE_TAG
+
+RUN apk upgrade -U \
+ && apk cache clean \
+ && rm -rf /var/cache/apk/*
 
 COPY ./scripts/manifest /bin/
 
