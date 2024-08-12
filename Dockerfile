@@ -1,13 +1,15 @@
-ARG ALPINE=alpine:3.17.2
+ARG ALPINE=alpine:3.20
 FROM ${ALPINE} AS verify
 ARG ARCH
 ARG TAG
 WORKDIR /verify
 ADD https://github.com/k3s-io/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
 RUN set -x \
- && apk --no-cache add \
-    curl \
-    file
+ && apk upgrade -U \
+ && apk add \
+    curl file \
+ && apk cache clean \
+ && rm -rf /var/cache/apk/*
 RUN if [ "${ARCH}" == "amd64" ]; then \
       export ARTIFACT="k3s"; \
     elif [ "${ARCH}" == "arm" ]; then \
@@ -26,8 +28,11 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
 FROM ${ALPINE}
 ARG ARCH
 ARG TAG
-RUN apk --no-cache add \
-  jq libselinux-utils procps
+RUN apk upgrade -U \
+ && apk add \
+    jq libselinux-utils procps \
+ && apk cache clean \
+ && rm -rf /var/cache/apk/*
 COPY --from=verify /opt/k3s /opt/k3s
 COPY scripts/upgrade.sh /bin/upgrade.sh
 ENTRYPOINT ["/bin/upgrade.sh"]
