@@ -166,7 +166,7 @@ verify_controlplane_versions() {
         info "All control-plane nodes have been upgraded to version to $CONTROLPLANE_NODE_VERSION"
 		    break
 		fi
-    info "Waiting for all control-plane nodes to be upgraded to version $MODIFIED_VERSION"
+    info "Waiting for all control-plane nodes to be upgraded to version $SYSTEM_UPGRADE_PLAN_LATEST_VERSION"
 	  sleep 5
 	  continue
   done
