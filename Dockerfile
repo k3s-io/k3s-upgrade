@@ -1,26 +1,25 @@
 ARG ALPINE=alpine:3.20
 FROM ${ALPINE} AS verify
-ARG ARCH
+ARG TARGETARCH
 ARG TAG
 WORKDIR /verify
-ADD https://github.com/k3s-io/k3s/releases/download/${TAG}/sha256sum-${ARCH}.txt .
+ADD https://github.com/k3s-io/k3s/releases/download/${TAG}/sha256sum-${TARGETARCH}.txt .
 RUN set -x \
  && apk upgrade -U \
  && apk add \
     curl file \
  && apk cache clean \
  && rm -rf /var/cache/apk/*
-RUN if [ "${ARCH}" == "amd64" ]; then \
+ 
+RUN if [ "${TARGETARCH}" == "amd64" ]; then \
       export ARTIFACT="k3s"; \
-    elif [ "${ARCH}" == "arm" ]; then \
+    elif [ "${TARGETARCH}" == "arm" ]; then \
       export ARTIFACT="k3s-armhf"; \
-    elif [ "${ARCH}" == "arm64" ]; then \
-      export ARTIFACT="k3s-arm64"; \
-    elif [ "${ARCH}" == "s390x" ]; then \
-      export ARTIFACT="k3s-s390x"; \
+    else \
+      export ARTIFACT="k3s-${TARGETARCH}"; \
     fi \
  && curl --output ${ARTIFACT}  --fail --location https://github.com/k3s-io/k3s/releases/download/${TAG}/${ARTIFACT} \
- && grep -E " k3s(-arm\w*|-s390x)?$" sha256sum-${ARCH}.txt | sha256sum -c \
+ && grep -E " k3s(-arm\w*|-s390x)?$" sha256sum-${TARGETARCH}.txt | sha256sum -c \
  && mv -vf ${ARTIFACT} /opt/k3s \
  && chmod +x /opt/k3s \
  && file /opt/k3s
