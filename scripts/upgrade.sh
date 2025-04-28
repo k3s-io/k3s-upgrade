@@ -82,15 +82,18 @@ replace_binary() {
   fi
 
   set +e
+  
+  NEW_BIN_VERSION="$($NEW_BINARY -v | head -1)"
+  NEW_BIN_SEMVER="$(echo $NEW_BIN_VERSION | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')"
 
-  NEW_BIN_SEMVER="$($NEW_BINARY -v | head -1)"
-  FULL_BIN_SEMVER="$($FULL_BIN_PATH -v | head -1)"
+  FULL_BIN_VERSION="$($FULL_BIN_PATH -v | head -1)"
+  FULL_BIN_SEMVER="$(echo $FULL_BIN_VERSION | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')"
 
   # Returns 0 if version1 <= version2, 1 otherwise
   compare_versions "$FULL_BIN_SEMVER" "$NEW_BIN_SEMVER"
 
   if [ $? -eq 1 ]; then
-    echo "Error: Current version ${FULL_BIN_SEMVER} is higher than ${NEW_BIN_SEMVER}"
+    echo "Error: Current ${FULL_BIN_VERSION} is higher than ${NEW_BIN_VERSION}"
     exit 1
   fi
 
