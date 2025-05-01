@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   packages: write # Needed to push to GHCR
+  id-token: write # Needed read vault secrets
 
 jobs:
   build-and-push:
