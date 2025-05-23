@@ -90,7 +90,7 @@ replace_binary() {
   compare_versions "$FULL_BIN_SEMVER" "$NEW_BIN_SEMVER"
 
   if [ $? -eq 1 ]; then
-    echo "Error: Current version ${FULL_BIN_SEMVER} is higher than ${NEW_BIN_SEMVER}"
+    echo "Error: Current ${FULL_BIN_SEMVER} is higher than ${NEW_BIN_SEMVER}"
     exit 1
   fi
 
