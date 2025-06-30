@@ -73,4 +73,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            TAG=${{ github.event.release.tag_name }}
+            TAG=${{ github.ref_name }}
