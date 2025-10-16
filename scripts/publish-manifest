@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -ex
+
+cd $(dirname $0)/..
+
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+echo "updating the manifest list to append Linux tags"
+docker buildx imagetools create \
+    --tag "${IMAGE}" \
+    "${IMAGE}-amd64" \
+    "${IMAGE}-arm64" \
+    "${IMAGE}-armhf"
+
+if [ -n "${IID_FILE}" ]; then
+    docker buildx imagetools inspect ${IMAGE}
+fi
