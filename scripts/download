@@ -1,0 +1,37 @@
+#!/bin/bash
+# Configure the shell to exit immediately if a command exits with a non-zero
+# status (-e) or if any command in a pipeline fails (-o pipefail).
+set -eo pipefail
+set -x
+
+cd $(dirname $0)/..
+
+export URI_VERSION=$(sed -e 's/+/%2B/g' <<<"$VERSION");
+
+if [ "${ARCH}" == "amd64" ]; then
+  export ARTIFACT="k3s";
+elif [ "${ARCH}" == "arm64" ]; then
+  export ARTIFACT="k3s-arm64";
+elif [ "${ARCH}" == "arm/v7" ]; then
+  export ARCH="arm"; # overwriting to match the sha256sum- suffix
+  export ARTIFACT="k3s-armhf";
+else
+  echo "Error: ARCH ${ARCH} not supported, only amd64, arm64 and arm."
+  exit 1
+fi
+
+mkdir -p artifacts
+
+if [ -z "${LOCAL_ARTIFACTS}" ]; then
+    pushd artifacts
+    if [ -n "${PRIME_RIBS}" ]; then
+        curl -fL -O -R https://${PRIME_RIBS}/k3s/${URI_VERSION}/${ARTIFACT}
+        curl -fL -O -R https://${PRIME_RIBS}/k3s/${URI_VERSION}/sha256sum-${ARCH}.txt
+    else
+        curl -fL -O -R https://github.com/rancher/k3s/releases/download/${URI_VERSION}/${ARTIFACT}
+        curl -fL -O -R https://github.com/rancher/k3s/releases/download/${URI_VERSION}/sha256sum-${ARCH}.txt
+    fi
+    popd
+else
+    cp local/* artifacts
+fi
