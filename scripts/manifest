@@ -11,7 +11,7 @@ else
   export PLUGIN_PLATFORMS="linux/amd64,linux/arm64,linux/arm"
 fi
 
-export REPO="rancher/k3s-upgrade"
+export REPO="k3s-io/k3s-upgrade"
 export DRONE_TAG=$(echo "${DRONE_TAG}" | sed -e 's/+/-/g')
 export PLUGIN_TARGET="${REPO}:${DRONE_TAG}"
 export PLUGIN_TEMPLATE="${REPO}:${DRONE_TAG}-ARCH"
