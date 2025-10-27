@@ -28,8 +28,8 @@ if [ -z "${LOCAL_ARTIFACTS}" ]; then
         curl -fL -O -R https://${PRIME_RIBS}/k3s/${URI_VERSION}/${ARTIFACT}
         curl -fL -O -R https://${PRIME_RIBS}/k3s/${URI_VERSION}/sha256sum-${ARCH}.txt
     else
-        curl -fL -O -R https://github.com/rancher/k3s/releases/download/${URI_VERSION}/${ARTIFACT}
-        curl -fL -O -R https://github.com/rancher/k3s/releases/download/${URI_VERSION}/sha256sum-${ARCH}.txt
+        curl -fL -O -R https://github.com/k3s-io/k3s/releases/download/${URI_VERSION}/${ARTIFACT}
+        curl -fL -O -R https://github.com/k3s-io/k3s/releases/download/${URI_VERSION}/sha256sum-${ARCH}.txt
     fi
     popd
 else

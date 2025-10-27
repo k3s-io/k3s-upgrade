@@ -11,7 +11,7 @@ To build the k3s-upgrade image locally, you can run the following:
 
 ```
 export ARCH=amd64 TAG=v1.17.2+k3s1
-docker build --build-arg ARCH --build-arg TAG --tag ${REPO:=rancher}/k3s-upgrade:${TAG/+/-} .
+docker build --build-arg ARCH --build-arg TAG --tag ${REPO:=k3s-io}/k3s-upgrade:${TAG/+/-} .
 ```
 
 ## Usage
