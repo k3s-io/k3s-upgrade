@@ -12,22 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Read Vault secrets
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
-            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
-
-      - name: Generate short-lived github app token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ env.APP_ID }}
-          private-key: ${{ env.PRIVATE_KEY }}
-
       - name: Create Release
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.event.client_payload.tag }}" --title "Release ${{ github.event.client_payload.tag }}"
