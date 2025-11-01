@@ -3,3 +3,4 @@
 /.*_history
 /.viminfo
 .vscode
+artifacts/
