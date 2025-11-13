@@ -18,6 +18,7 @@ else ifeq ($(ARCH), arm/v7)
 endif
 
 TAG ?= ${TAG}
+PRIME_RIBS ?= ${PRIME_RIBS}
 # sanitize the tag
 DOCKER_TAG := $(shell echo $(TAG) | sed 's/+/-/g')
 
@@ -35,7 +36,7 @@ BUILD_OPTS = \
 
 .PHONY: push-image
 push-image: download-assets
-	docker buildx build \
+	PRIME_RIBS=$(PRIME_RIBS) docker buildx build \
 		$(BUILD_OPTS) \
 		$(IID_FILE_FLAG) \
 		--sbom=true \
@@ -50,4 +51,4 @@ publish-manifest:
 
 .PHONY: download-assets
 download-assets: 
-	ARCH=$(ARCH) ARTIFACT=$(ARTIFACT) VERSION=$(VERSION) ./scripts/download
+	PRIME_RIBS=$(PRIME_RIBS) ARCH=$(ARCH) ARTIFACT=$(ARTIFACT) VERSION=$(VERSION) ./scripts/download
