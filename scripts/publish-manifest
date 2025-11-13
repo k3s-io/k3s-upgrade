@@ -13,5 +13,5 @@ docker buildx imagetools create \
     "${IMAGE}-armhf"
 
 if [ -n "${IID_FILE}" ]; then
-    docker buildx imagetools inspect ${IMAGE}
+    docker buildx imagetools inspect --format "{{json .Manifest}}" ${IMAGE} | jq -r '.digest' > ${IID_FILE}
 fi
