@@ -84,12 +84,8 @@ jobs:
           images: |
             docker.io/${{ github.repository_owner == 'k3s-io' && 'rancher' || secrets.DOCKER_USERNAME }}/k3s-upgrade
             ghcr.io/${{ github.repository }}
-            
-            - image: ${{ env.PRIME_STAGING_REGISTRY }}/rancher/k3s-upgrade
-              enable: ${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
-              
-            - image: ${{ env.PRIME_REGISTRY }}/rancher/k3s-upgrade
-              enable: ${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
+            name=${{ env.PRIME_STAGING_REGISTRY }}/rancher/k3s-upgrade,enable=${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
+            name=${{ env.PRIME_REGISTRY }}/rancher/k3s-upgrade,enable=${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
 
       - name: Build and push multi-platform image
         uses: docker/build-push-action@v6
