@@ -93,7 +93,6 @@ jobs:
           VERSION: ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
           OS: ${{ matrix.os }}
-          PRIME_RIBS: ${{ env.PRIME_RIBS }}
         with:
           image: "k3s-upgrade"
           tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}
@@ -114,7 +113,6 @@ jobs:
           VERSION: ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
           OS: ${{ matrix.os }}
-          PRIME_RIBS: ${{ env.PRIME_RIBS }}
         with:
           image: "k3s-upgrade"
           tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}

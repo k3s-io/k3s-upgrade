@@ -18,7 +18,7 @@ else ifeq ($(ARCH), arm/v7)
 endif
 
 TAG ?= ${TAG}
-PRIME_RIBS ?= ${PRIME_RIBS}
+PRIME_RIBS ?= 
 # sanitize the tag
 DOCKER_TAG := $(shell echo $(TAG) | sed 's/+/-/g')
 
