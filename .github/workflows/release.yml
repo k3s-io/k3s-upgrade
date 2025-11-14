@@ -1,40 +1,20 @@
+name: Release Build and Push
+
 on:
   release:
     types: [published]
 
-name: Release Build and Push
 permissions:
   contents: read
   packages: write # Needed to push to GHCR
   id-token: write # Needed read vault secrets
 
-env:
-  IMAGE: "k3s-upgrade"
-  REPO: "rancher"
-
 jobs:
-  build-linux:
+  build-and-push:
     runs-on: ubuntu-latest
-    strategy:
-        fail-fast: true
-        matrix:
-          include:
-            - tag-suffix: "amd64"
-              arch: amd64
-              os: linux
-            - tag-suffix: "arm64"
-              arch: arm64
-              os: linux
-            - tag-suffix: "armhf"
-              arch: arm/v7 
-              os: linux
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Change Tag
-        run: |
-          echo "GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/+/-/g')" >> "$GITHUB_ENV"
+        uses: actions/checkout@v4
 
       - name: "Read Vault secrets"
         if: github.repository_owner == 'k3s-io'
@@ -51,184 +31,70 @@ jobs:
             secret/data/github/repo/${{ github.repository }}/k3s-prime-stg-registry/credentials username |  PRIME_STAGING_REGISTRY_USERNAME ;
             secret/data/github/repo/${{ github.repository }}/k3s-prime-stg-registry/credentials password |  PRIME_STAGING_REGISTRY_PASSWORD ;
     
-      - name: Publish Image - Docker
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        env:
-          VERSION: ${{ github.ref_name }}
-          OS: ${{ matrix.os }}
-          ARCH: ${{ matrix.arch }}
-        with:
-          image: "k3s-upgrade"
-          tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}
-          make-target: push-image
-          platforms: ${{ matrix.os }}/${{ matrix.arch }}
-          
-          public-repo: ${{ env.REPO }}
-          public-username: ${{ env.DOCKER_USERNAME }}
-          public-password: ${{ env.DOCKER_PASSWORD }}
-          push-to-prime: false
-
-      - name: Publish Image - GitHub Container Registry
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        env:
-          VERSION: ${{ github.ref_name }}
-          OS: ${{ matrix.os }}
-          ARCH: ${{ matrix.arch }}
-        with:
-          image: "k3s-upgrade"
-          tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}
-          make-target: push-image
-          platforms: ${{ matrix.os }}/${{ matrix.arch }}
-          
-          public-registry: ghcr.io
-          public-repo: ${{ env.REPO }}
-          public-username: ${{ github.repository_owner }}
-          public-password: ${{ secrets.GITHUB_TOKEN }}
-          push-to-prime: false
-
-      - name: Publish Image - Staging
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        if: ${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io'}}
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
-          OS: ${{ matrix.os }}
-        with:
-          image: "k3s-upgrade"
-          tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}
-          make-target: push-image
-          platforms: ${{ matrix.os }}/${{ matrix.arch }}
-
-          push-to-public: false
-
-          prime-repo: ${{ env.REPO }}
-          prime-registry: ${{ env.PRIME_STAGING_REGISTRY }}
-          prime-username: ${{ env.PRIME_STAGING_REGISTRY_USERNAME }}
-          prime-password: ${{ env.PRIME_STAGING_REGISTRY_PASSWORD }}
-
-      - name: Publish Image - Prime
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        if: ${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io'}}
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
-          OS: ${{ matrix.os }}
-        with:
-          image: "k3s-upgrade"
-          tag: ${{ env.GIT_TAG }}-${{ matrix.tag-suffix }}
-          make-target: push-image
-          platforms: ${{ matrix.os }}/${{ matrix.arch }}
-
-          push-to-public: false
-
-          prime-repo: ${{ env.REPO }}
-          prime-registry: ${{ env.PRIME_REGISTRY }}
-          prime-username: ${{ env.PRIME_REGISTRY_USERNAME }}
-          prime-password: ${{ env.PRIME_REGISTRY_PASSWORD }}
-
-  create-manifest:
-    runs-on: ubuntu-latest
-    needs: [ build-linux ]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Change Tag
-        run: |
-          echo "GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/+/-/g')" >> "$GITHUB_ENV"
-
-      - name: "Read Vault secrets"
+      - name: Login to DockerHub with Rancher Secrets
         if: github.repository_owner == 'k3s-io'
-        uses: rancher-eio/read-vault-secrets@main
+        uses: docker/login-action@v3
         with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-registry/credentials primeribs |  PRIMERIBS ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-registry/credentials registry |  PRIME_REGISTRY ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-registry/credentials username |  PRIME_REGISTRY_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-registry/credentials password |  PRIME_REGISTRY_PASSWORD ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-stg-registry/credentials registry |  PRIME_STAGING_REGISTRY ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-stg-registry/credentials username |  PRIME_STAGING_REGISTRY_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/k3s-prime-stg-registry/credentials password |  PRIME_STAGING_REGISTRY_PASSWORD ;
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_TOKEN }}
 
-      - name: Publish Manifest - Docker
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
+      - name: Login to DockerHub with GHA Secrets
+        if: github.repository_owner != 'k3s-io'
+        uses: docker/login-action@v3
         with:
-          image: "k3s-upgrade"
-          tag: ${{ github.ref_name }}
-          make-target: publish-manifest
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-          public-repo: ${{ env.REPO }}
-          public-username: ${{ env.DOCKER_USERNAME }}
-          public-password: ${{ env.DOCKER_PASSWORD }}
-          push-to-prime: false
-
-      - name: Inspect Docker image
-        run: docker buildx imagetools inspect ${{ env.REPO }}/${{ env.IMAGE }}:${{ env.GIT_TAG }}
-
-      - name: Publish Manifest - GitHub Container Registry
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          image: "k3s-upgrade"
-          tag: ${{ github.ref_name }}
-          make-target: publish-manifest
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          public-repo: ${{ env.REPO }}
-          public-registry: ghcr.io
-          public-username: ${{ env.DOCKER_USERNAME }}
-          public-password: ${{ env.DOCKER_PASSWORD }}
-          push-to-prime: false
-
-      - name: Inspect GHCR image
-        run: docker buildx imagetools inspect ghcr.io/${{ env.REPO }}/${{ env.IMAGE }}:${{ env.GIT_TAG }}
-
-      - name: Publish Manifest - Staging
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        if: ${{ contains(github.ref_name, '-rc') }}
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
+      - name: Log in to Staging Registry
+        uses: docker/login-action@v3
+        if: ${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io'}}
         with:
-          image: "k3s-upgrade"
-          tag: ${{ github.ref_name }}
-          make-target: publish-manifest
+          registry: ${{ env.PRIME_STAGING_REGISTRY }}
+          username: ${{ env.PRIME_STAGING_REGISTRY_USERNAME }}
+          password: ${{ env.PRIME_STAGING_REGISTRY_PASSWORD }}
 
-          push-to-public: false
-
-          prime-repo: ${{ env.REPO }}
-          prime-registry: ${{ env.PRIME_STAGING_REGISTRY }}
-          prime-username: ${{ env.PRIME_STAGING_REGISTRY_USERNAME }}
-          prime-password: ${{ env.PRIME_STAGING_REGISTRY_PASSWORD }}
-
-      - name: Inspect Staging image
-        if: ${{ contains(github.ref_name, '-rc') }}
-        run: docker buildx imagetools inspect ${{ env.PRIME_STAGING_REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ env.GIT_TAG }}
-
-      - name: Publish Manifest - Prime
-        uses: rancher/ecm-distro-tools/actions/publish-image@master
-        if: ${{ !contains(github.ref_name, '-rc') }}
-        env:
-          VERSION: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
+      - name: Log in to Prime Registry
+        uses: docker/login-action@v3
+        if: ${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io'}}
         with:
-          image: "k3s-upgrade"
-          tag: ${{ github.ref_name }}
-          make-target: publish-manifest
+          registry: ${{ env.PRIME_REGISTRY }}
+          username: ${{ env.PRIME_REGISTRY_USERNAME }}
+          password: ${{ env.PRIME_REGISTRY_PASSWORD }}
 
-          push-to-public: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-          prime-repo: ${{ env.REPO }}
-          prime-registry: ${{ env.PRIME_REGISTRY }}
-          prime-username: ${{ env.PRIME_REGISTRY_USERNAME }}
-          prime-password: ${{ env.PRIME_REGISTRY_PASSWORD }}
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Inspect Prime image
-        if: ${{ !contains(github.ref_name, '-rc') }}
-        run: docker buildx imagetools inspect ${{ env.PRIME_REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ env.GIT_TAG }}
+      # For k3s-io, push to docker.io/rancher/k3s-upgrade
+      # For forks, push to docker.io/<username>/k3s-upgrade
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            docker.io/${{ github.repository_owner == 'k3s-io' && 'rancher' || secrets.DOCKER_USERNAME }}/k3s-upgrade
+            ghcr.io/${{ github.repository }}
+            name=${{ env.PRIME_STAGING_REGISTRY }}/rancher/k3s-upgrade,enable=${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
+            name=${{ env.PRIME_REGISTRY }}/rancher/k3s-upgrade,enable=${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
+
+      - name: Build and push multi-platform image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            TAG=${{ github.ref_name }}
