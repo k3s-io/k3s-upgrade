@@ -54,7 +54,7 @@ jobs:
 
       - name: Log in to Staging Registry
         uses: docker/login-action@v3
-        if: ${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io'}}
+        if: ${{ github.repository_owner == 'k3s-io'}}
         with:
           registry: ${{ env.PRIME_STAGING_REGISTRY }}
           username: ${{ env.PRIME_STAGING_REGISTRY_USERNAME }}
@@ -84,7 +84,7 @@ jobs:
           images: |
             docker.io/${{ github.repository_owner == 'k3s-io' && 'rancher' || secrets.DOCKER_USERNAME }}/k3s-upgrade
             ghcr.io/${{ github.repository }}
-            name=${{ env.PRIME_STAGING_REGISTRY }}/rancher/k3s-upgrade,enable=${{ contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
+            name=${{ env.PRIME_STAGING_REGISTRY }}/rancher/k3s-upgrade,enable=${{ github.repository_owner == 'k3s-io' }}
             name=${{ env.PRIME_REGISTRY }}/rancher/k3s-upgrade,enable=${{ !contains(github.ref_name, '-rc') && github.repository_owner == 'k3s-io' }}
 
       - name: Build and push multi-platform image
