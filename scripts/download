@@ -31,7 +31,12 @@ if [ -z "${LOCAL_ARTIFACTS}" ]; then
         curl -fL -O -R https://github.com/k3s-io/k3s/releases/download/${URI_VERSION}/${ARTIFACT}
         curl -fL -O -R https://github.com/k3s-io/k3s/releases/download/${URI_VERSION}/sha256sum-${ARCH}.txt
     fi
+    grep " ${ARTIFACT}$" sha256sum-${ARCH}.txt | sha256sum --check
     popd
 else
+    # Verify before copying to artifacts
+    pushd local
+    grep " ${ARTIFACT}$" sha256sum-${ARCH}.txt | sha256sum --check
+    popd
     cp local/* artifacts
 fi
