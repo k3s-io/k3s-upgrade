@@ -16,6 +16,10 @@ updates:
     directory: "/"
     labels:
       - "kind/dependabot"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-patch"
     reviewers:
       - "k3s-io/k3s-dev"
     schedule:
