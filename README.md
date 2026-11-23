@@ -10,9 +10,16 @@ k3s-upgrade is an image that is responsible of upgrading k3s version via the [Sy
 To build the k3s-upgrade image locally, you can run the following:
 
 ```
-export ARCH=amd64 TAG=v1.17.2+k3s1
-docker build --build-arg ARCH --build-arg TAG --tag ${REPO:=k3s-io}/k3s-upgrade:${TAG/+/-} .
+export ARCH=amd64 TAG=v1.33.5+k3s1 VERSION=v1.33.5+k3s1
+make download-assets
+docker buildx build --platform=linux/amd64 --build-arg TAG=$TAG --build-arg ARTIFACT=k3s --tag ${REPO:=rancher}/k3s-upgrade:${TAG/+/-} .
 ```
+
+**Environment Variables:**
+- `ARCH`: Target architecture (amd64, arm64, arm/v7)
+- `TAG`: Image tag (used for Docker image naming)
+- `VERSION`: K3s version (used for downloading artifacts)
+- `REPO`: Docker repository (defaults to "rancher")
 
 ## Usage
 
@@ -49,7 +56,7 @@ metadata:
   namespace: system-upgrade
 spec:
   concurrency: 1
-  version: v1.17.2-k3s1
+  version: v1.33.5+k3s1 
   nodeSelector:
     matchExpressions:
       - {key: k3s-upgrade, operator: Exists}
